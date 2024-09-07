@@ -1,4 +1,4 @@
-# LNM AND OS PREDICTION
+# LNM AND OS PREDICTION ( will update soon)
 
 ## Requirement
 These codes can run on Ubuntu22 with Python 3.8 and CUDA (GPU computation).
