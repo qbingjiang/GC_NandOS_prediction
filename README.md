@@ -9,8 +9,6 @@ This repository contains Python scripts for running a machine-learning model to 
 - **Python Version:** Python 3.8
 - **CUDA:** Required for GPU computation
 
-## Create a Python code dependency environment by performing the following steps.
-
 ## Installation
 
    ```bash
