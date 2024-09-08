@@ -1,0 +1,11 @@
+# ninja log v5
+0	40861	1712473151420696174	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan.o	5989d8c2f561da2d
+4	126622	1712473237172765495	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_fwd_fp32.o	fe8f7505796e864b
+3	135716	1712473246256772852	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_fwd_fp16.o	34634e30e541c42f
+3	143418	1712473253948779083	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_fwd_bf16.o	a65cf76307c232fb
+2	240597	1712473351112857928	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_fp32_real.o	7bc9bac0e02af397
+2	261293	1712473371800874746	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_fp16_real.o	ed157699e8e81fdf
+1	262789	1712473373304875969	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_bf16_real.o	d18eb7379205bb99
+1	333470	1712473443952933471	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_fp16_complex.o	7a9d74ef5381bc0a
+1	338005	1712473448488937166	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_bf16_complex.o	8622778471245804
+2	340953	1712473451444939574	/home/bj/Documents/code_workspace/70 Mamba/SegMamba-main/mamba/build/temp.linux-x86_64-cpython-38/csrc/selective_scan/selective_scan_bwd_fp32_complex.o	771f95c1a2ba8c91
