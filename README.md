@@ -12,7 +12,7 @@ This repository contains Python scripts for running a machine-learning model to 
 ## Create a Python code dependency environment by performing the following steps.
 
 ## Installation
-1. Clone the repository:
+
    ```bash
    git clone https://github.com/qbingjiang/GC_NandOS_prediction.git
    cd GC_NandOS_prediction
