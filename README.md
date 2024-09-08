@@ -1,8 +1,18 @@
-# LNM AND OS PREDICTION ( will update soon)
+# LNM AND OS PREDICTION
 
-## Requirement
-These codes can run on Ubuntu22 with Python 3.8 and CUDA (GPU computation).
+
+## Overview
+This repository contains Python scripts for running a machine-learning model to predict LNM (Lymph Node Metastasis) and OS (Overall Survival) using Mamba techniques (Mamba is a deep-learning architecture focused on sequence modeling). The model is designed to be executed on a system with GPU support for accelerated computation.
+
+## Requirements
+- **Operating System:** Ubuntu 22.04 LTS
+- **Python Version:** Python 3.8
+- **CUDA:** Required for GPU computation
 
 ## Create a Python code dependency environment by performing the following steps.
 
-
+## Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/qbingjiang/GC_NandOS_prediction.git
+   cd GC_NandOS_prediction
