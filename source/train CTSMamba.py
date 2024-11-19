@@ -260,7 +260,7 @@ def train(model, trainloader):
             torch.save(model.state_dict(), f"./pth/ctsmamba-{epoch}.pth") 
         gc.collect() 
 
-
+### train the model
 train(model, trainloader) 
 
 
