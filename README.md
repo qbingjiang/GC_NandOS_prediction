@@ -14,3 +14,11 @@ This repository contains Python scripts for running a machine-learning model to 
    ```bash
    git clone https://github.com/qbingjiang/GC_NandOS_prediction.git
    cd GC_NandOS_prediction
+
+## Acknowledgement
+Many thanks for these repos for their great contribution!
+
+[https://github.com/ge-xing/SegMamba](https://github.com/ge-xing/SegMamba)
+
+[https://github.com/bowang-lab/U-Mamba](https://github.com/bowang-lab/U-Mamba)
+
