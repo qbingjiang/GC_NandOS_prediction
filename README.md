@@ -64,7 +64,7 @@ For the evaluation of the model, we use the following metrics:
 - Area Under the Curve (AUC)
 - Subgroup analysis
 
-run the codes in the folder of ```Blogistic and cox analysis```
+You can run the codes in the folder of ```Blogistic and cox analysis```
 
 
 ## References and Acknowledgement 
