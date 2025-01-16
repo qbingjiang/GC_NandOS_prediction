@@ -58,6 +58,14 @@ The following command runs inference using the provided checkpoint:
 python test_CTSMamba.py --training_set './BDataset/training_set.xlsx' --validation_set './BDataset/validation_set.xlsx' --save_path_train './Bresults/pred_train.xlsx' --save_path_test './Bresults/pred_test.xlsx' --metrics_path './Bresults/metrics_table.csv'
 ```
 
+### Evaluation
+For the evaluation of the model, we use the following metrics: 
+- Concordance Index (C-Index)
+- Area Under the Curve (AUC)
+- Subgroup analysis
+
+run the codes in the folder of ```Blogistic and cox analysis```
+
 
 ## References and Acknowledgement 
 Many thanks for these works and repos for their great contribution!
