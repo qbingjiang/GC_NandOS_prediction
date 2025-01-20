@@ -4,7 +4,7 @@ import torch
 # import sys
 # sys.path.append(r"./mamba")
 # sys.path.append(r"./mamba/mamba_ssm")
-from model_segmamba.model_build import CTSMamba
+from model_build import CTSMamba_v2
 import pandas as pd
 import numpy as np
 import torch.nn as nn
@@ -25,23 +25,10 @@ seed=5
 np.random.seed(seed)
 torch.manual_seed(seed)
 
-model = CTSMamba().cuda()
-cuda = True if torch.cuda.is_available() else False
-if cuda:
-    model.cuda()
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor 
-
-load_model = False
-if load_model: 
-    print('load the model of ', f'./pth/best_model.pth') 
-    model.load_state_dict(torch.load(f'./pth/best_model.pth', map_location=lambda storage, loc: storage)) 
-
 criterion = nn.BCELoss(reduction='mean') 
 criterion_dice = DiceLoss()
 criterion_surv = cox_loss() 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-# optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5) 
 def lr_scheduler(epoch):
     if epoch < 20:
         lr = 5e-5
@@ -254,7 +241,8 @@ def calculate_metrics(y_true, y_pred_proba, optimal_threshold=None):
     return results, optimal_threshold 
 
 # Function to calculate metrics, save confusion matrix, and find the optimal threshold
-def calculate_metrics_save_ConfusionMatrix(y_true, y_pred_proba, n_iterations=1000, alpha=0.05, save_fig=None, optimal_threshold=None):
+def calculate_metrics_save_ConfusionMatrix(y_true, y_pred_proba, n_iterations=1000, alpha=0.05, 
+                                           save_fig=None, optimal_threshold=None, ifcal95CI=True):
     auc = metrics.roc_auc_score(y_true, y_pred_proba) 
     y_pred = y_pred_proba.copy()
     fpr, tpr, thres = roc_curve(y_true, y_pred_proba) 
@@ -297,46 +285,58 @@ def calculate_metrics_save_ConfusionMatrix(y_true, y_pred_proba, n_iterations=10
     f1_score = metrics.f1_score(y_true, y_pred) 
     precision = metrics.precision_score(y_true, y_pred)  ## precision, positive predictive value (PPV) 
     npv = cal_NPV(y_true, y_pred)
-    # Calculate 95% confidence intervals using bootstrapping
-    auc_scores = []
-    accuracy_scores = []
-    sensitivity_scores = []
-    specificity_scores = []
-    f1_scores = []
-    precision_scores = [] 
-    npv_scores = []
-    for _ in range(n_iterations):
-        # Bootstrap resampling
-        y_true_resampled, y_pred_proba_resampled, y_pred_resampled = resample(y_true, y_pred_proba, y_pred)
-        # y_pred_proba_resampled = resample(y_pred_proba)
-        # y_pred_resampled = resample(y_pred)
-        # Calculate performance metrics
-        auc_scores.append(metrics.roc_auc_score(y_true_resampled, y_pred_proba_resampled))
-        accuracy_scores.append(metrics.accuracy_score(y_true_resampled, y_pred_resampled))
-        sensitivity_scores.append(metrics.recall_score(y_true_resampled, y_pred_resampled))
-        specificity_scores.append(metrics.recall_score(y_true_resampled, y_pred_resampled, pos_label=0))
-        f1_scores.append(metrics.f1_score(y_true_resampled, y_pred_resampled))
-        precision_scores.append(metrics.precision_score(y_true_resampled, y_pred_resampled) )
-        npv_scores.append(cal_NPV(y_true_resampled, y_pred_resampled) )
-    # Calculate 95% confidence intervals
-    auc_ci = np.percentile(auc_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    accuracy_ci = np.percentile(accuracy_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    sensitivity_ci = np.percentile(sensitivity_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    specificity_ci = np.percentile(specificity_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    f1_ci = np.percentile(f1_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    precision_ci = np.percentile(precision_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    npv_ci = np.percentile(npv_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
-    # Return the results as a dictionary
-    results = { 
-                "AUC": f"{auc:.3f}({auc_ci[0]:.3f}-{auc_ci[1]:.3f})", 
-                "Accuracy": f"{accuracy:.3f}({accuracy_ci[0]:.3f}-{accuracy_ci[1]:.3f})", 
-                "Sensitivity": f"{sensitivity:.3f}({sensitivity_ci[0]:.3f}-{sensitivity_ci[1]:.3f})",
-                "Specificity":  f"{specificity:.3f}({specificity_ci[0]:.3f}-{specificity_ci[1]:.3f})", 
-                "F1 Score": f"{f1_score:.3f}({f1_ci[0]:.3f}-{f1_ci[1]:.3f})", 
-                "precision": f"{precision:.3f}({precision_ci[0]:.3f}-{precision_ci[1]:.3f})", 
-                "npv": f"{npv:.3f}({npv_ci[0]:.3f}-{npv_ci[1]:.3f})", 
-                 "optimal_threshold": optimal_threshold  
-                } 
+    if ifcal95CI: 
+        # Calculate 95% confidence intervals using bootstrapping
+        auc_scores = []
+        accuracy_scores = []
+        sensitivity_scores = []
+        specificity_scores = []
+        f1_scores = []
+        precision_scores = [] 
+        npv_scores = []
+        for _ in range(n_iterations):
+            # Bootstrap resampling
+            y_true_resampled, y_pred_proba_resampled, y_pred_resampled = resample(y_true, y_pred_proba, y_pred)
+            # y_pred_proba_resampled = resample(y_pred_proba)
+            # y_pred_resampled = resample(y_pred)
+            # Calculate performance metrics
+            auc_scores.append(metrics.roc_auc_score(y_true_resampled, y_pred_proba_resampled))
+            accuracy_scores.append(metrics.accuracy_score(y_true_resampled, y_pred_resampled))
+            sensitivity_scores.append(metrics.recall_score(y_true_resampled, y_pred_resampled))
+            specificity_scores.append(metrics.recall_score(y_true_resampled, y_pred_resampled, pos_label=0))
+            f1_scores.append(metrics.f1_score(y_true_resampled, y_pred_resampled))
+            precision_scores.append(metrics.precision_score(y_true_resampled, y_pred_resampled) )
+            npv_scores.append(cal_NPV(y_true_resampled, y_pred_resampled) )
+        # Calculate 95% confidence intervals
+        auc_ci = np.percentile(auc_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        accuracy_ci = np.percentile(accuracy_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        sensitivity_ci = np.percentile(sensitivity_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        specificity_ci = np.percentile(specificity_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        f1_ci = np.percentile(f1_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        precision_ci = np.percentile(precision_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        npv_ci = np.percentile(npv_scores, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        # Return the results as a dictionary
+        results = { 
+                    "AUC": f"{auc:.3f}({auc_ci[0]:.3f}-{auc_ci[1]:.3f})", 
+                    "Accuracy": f"{accuracy:.3f}({accuracy_ci[0]:.3f}-{accuracy_ci[1]:.3f})", 
+                    "Sensitivity": f"{sensitivity:.3f}({sensitivity_ci[0]:.3f}-{sensitivity_ci[1]:.3f})",
+                    "Specificity":  f"{specificity:.3f}({specificity_ci[0]:.3f}-{specificity_ci[1]:.3f})", 
+                    "F1 Score": f"{f1_score:.3f}({f1_ci[0]:.3f}-{f1_ci[1]:.3f})", 
+                    "precision": f"{precision:.3f}({precision_ci[0]:.3f}-{precision_ci[1]:.3f})", 
+                    "npv": f"{npv:.3f}({npv_ci[0]:.3f}-{npv_ci[1]:.3f})", 
+                    "optimal_threshold": optimal_threshold  
+                    } 
+    else: 
+        results = { 
+                    "AUC": f"{auc:.3f}", 
+                    "Accuracy": f"{accuracy:.3f}", 
+                    "Sensitivity": f"{sensitivity:.3f}", 
+                    "Specificity":  f"{specificity:.3f}", 
+                    "F1 Score": f"{f1_score:.3f}", 
+                    "precision": f"{precision:.3f}", 
+                    "npv": f"{npv:.3f}", 
+                    "optimal_threshold": optimal_threshold  
+                    }
     return results, optimal_threshold
 
 def bootstrap_cindex(labels_time_list, Survival_time, labels_status_list, n_bootstraps=1000, random_seed=42): 
@@ -353,7 +353,7 @@ def bootstrap_cindex(labels_time_list, Survival_time, labels_status_list, n_boot
     ci_upper = sorted_scores[int(0.975 * len(sorted_scores))]
     return ci_lower, ci_upper
 
-def calculate_surv(Survival_time, labels_time_list, labels_status_list, best_cutoff_value=None): 
+def calculate_surv(Survival_time, labels_time_list, labels_status_list, best_cutoff_value=None, ifcal95CI=False): 
     def _hr_values(pred_surv_list, labels_time_list, labels_status_list, best_cutoff_value=None ): 
         if best_cutoff_value is None: 
             ## method 1. median_cutoff_value
@@ -390,20 +390,24 @@ def calculate_surv(Survival_time, labels_time_list, labels_status_list, best_cut
         #     print(f"Hazard Ratio (HR): {hr:.4f}, 95% CI: ({lower_ci:.4f}, {upper_ci:.4f})")
         return best_cutoff_value, result.p_value, hr, lower_ci, upper_ci
     valid_cindex = lifelines.utils.concordance_index(labels_time_list, Survival_time, labels_status_list)
-    cindex_ci_lower, cindex_ci_upper = bootstrap_cindex(labels_time_list, Survival_time, labels_status_list)
-    valid_cindex_info = f"Valid C-index: {valid_cindex:.4f} ({cindex_ci_lower:.4f}-{cindex_ci_upper:.4f})"
-    best_cutoff_value, p_value, hr, lower_ci, upper_ci = _hr_values(Survival_time, labels_time_list, labels_status_list, best_cutoff_value) 
-    # results = {'cindex':f'{valid_cindex:.3f}({cindex_ci_lower:.3f}-{cindex_ci_upper:.3f})', 'pvalue': p_value, 'hr': hr, 'lower_ci': lower_ci, 'upper_ci': upper_ci, 'best_cutoff_value': best_cutoff_value} 
-    results = {'cindex':f'{valid_cindex:.3f}({cindex_ci_lower:.3f}-{cindex_ci_upper:.3f})', 'pvalue': p_value, 'hr': f'{hr:.3f}({lower_ci:.3f}-{upper_ci:.3f})', 'best_cutoff_value': best_cutoff_value} 
-                                                                                            
-    return results, best_cutoff_value 
+    if ifcal95CI: 
+        cindex_ci_lower, cindex_ci_upper = bootstrap_cindex(labels_time_list, Survival_time, labels_status_list ) 
+        valid_cindex_info = f"Valid C-index: {valid_cindex:.4f} ({cindex_ci_lower:.4f}-{cindex_ci_upper:.4f})"
+        best_cutoff_value, p_value, hr, lower_ci, upper_ci = _hr_values(Survival_time, labels_time_list, labels_status_list, best_cutoff_value) 
+        # results = {'cindex':f'{valid_cindex:.3f}({cindex_ci_lower:.3f}-{cindex_ci_upper:.3f})', 'pvalue': p_value, 'hr': hr, 'lower_ci': lower_ci, 'upper_ci': upper_ci, 'best_cutoff_value': best_cutoff_value} 
+        results = {'cindex':f'{valid_cindex:.3f}({cindex_ci_lower:.3f}-{cindex_ci_upper:.3f})', 'pvalue': p_value, 'hr': f'{hr:.3f}({lower_ci:.3f}-{upper_ci:.3f})', 'best_cutoff_value': best_cutoff_value}                                                       
+        return results, best_cutoff_value 
+    else: 
+        best_cutoff_value, p_value, hr, lower_ci, upper_ci = _hr_values(Survival_time, labels_time_list, labels_status_list, best_cutoff_value) 
+        results = {'cindex':f'{valid_cindex:.3f}', 'pvalue': p_value, 'hr': f'{hr:.3f}({lower_ci:.3f}-{upper_ci:.3f})', 'best_cutoff_value': best_cutoff_value}                                                       
+        return results, best_cutoff_value 
 
 
-def evaluation(df_preds_train, df_preds_test, df_preds_evc1, df_preds_evc2, save_fname='metrics_table.csv'):
-    metrics_DL_1, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_train['labels_N'], df_preds_train['pred_N'], optimal_threshold=None ) 
-    metrics_DL_2, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_test['labels_N'], df_preds_test['pred_N'], optimal_threshold=optimal_threshold )  
-    metrics_DL_3, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_evc1['labels_N'], df_preds_evc1['pred_N'], optimal_threshold=optimal_threshold ) 
-    metrics_DL_4, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_evc2['labels_N'],  df_preds_evc2['pred_N'], optimal_threshold=optimal_threshold ) 
+def evaluation(df_preds_train, df_preds_test, df_preds_evc1, df_preds_evc2, save_fname='metrics_table.csv', ifcal95CI=True):
+    metrics_DL_1, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_train['labels_N'], df_preds_train['pred_N'], optimal_threshold=None, ifcal95CI=ifcal95CI ) 
+    metrics_DL_2, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_test['labels_N'], df_preds_test['pred_N'], optimal_threshold=optimal_threshold, ifcal95CI=ifcal95CI )  
+    metrics_DL_3, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_evc1['labels_N'], df_preds_evc1['pred_N'], optimal_threshold=optimal_threshold, ifcal95CI=ifcal95CI ) 
+    metrics_DL_4, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_evc2['labels_N'],  df_preds_evc2['pred_N'], optimal_threshold=optimal_threshold, ifcal95CI=ifcal95CI ) 
     
     surv_1, best_cutoff_value = calculate_surv(df_preds_train['pred_surv_risk'].to_numpy(), df_preds_train['labels_time'].to_numpy(), df_preds_train['labels_status'].to_numpy(), best_cutoff_value=None)
     surv_2, best_cutoff_value = calculate_surv(df_preds_test['pred_surv_risk'].to_numpy(), df_preds_test['labels_time'].to_numpy(), df_preds_test['labels_status'].to_numpy(), best_cutoff_value=best_cutoff_value)
@@ -415,11 +419,12 @@ def evaluation(df_preds_train, df_preds_test, df_preds_evc1, df_preds_evc2, save
                                             'train_surv', 'interValid_surv', 'evc2_surv']] ) 
     df.to_csv(save_fname, encoding='utf-8-sig') 
 
-def evaluation_v2(df_preds_train, ifsurv=True ): 
-    metrics_DL_1, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_train['labels_N'], df_preds_train['pred_N'], optimal_threshold=None ) 
+def evaluation_v2(df_preds_train, ifsurv=True, ifcal95CI=True ): 
+    metrics_DL_1, optimal_threshold = calculate_metrics_save_ConfusionMatrix(df_preds_train['labels_N'], df_preds_train['pred_N'], optimal_threshold=None, ifcal95CI=ifcal95CI ) 
     surv_1, best_cutoff_value = 0, 0
     if ifsurv: 
-        surv_1, best_cutoff_value = calculate_surv(df_preds_train['pred_surv_risk'].to_numpy(), df_preds_train['labels_time'].to_numpy(), df_preds_train['labels_status'].to_numpy(), best_cutoff_value=None)
+        surv_1, best_cutoff_value = calculate_surv(df_preds_train['pred_surv_risk'].to_numpy(), df_preds_train['labels_time'].to_numpy(), df_preds_train['labels_status'].to_numpy(), best_cutoff_value=None, 
+                                                   ifcal95CI=ifcal95CI)
     return metrics_DL_1, optimal_threshold, surv_1, best_cutoff_value
 
 def test_model_v3(model, X_train_path, df_features, best_cutoff_value=None, ifcal_surv=True, save_path=None, auc_thres=None ):
@@ -566,6 +571,22 @@ testloader01 = make_dataloader_v3(X_train_path_test, y_train_test, bs=1, ifshuff
 # testloader1 = make_dataloader_v3(X_train_path_evc1, y_train_evc1, bs=1, ifshuffle=False ) 
 # testloader2 = make_dataloader_v3(X_train_path_evc2, y_train_evc2, bs=1, ifshuffle=False ) 
 
+
+model = CTSMamba_v2()
+cuda = True if torch.cuda.is_available() else False
+if cuda:
+    model.cuda()
+Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor 
+
+load_model = True
+if load_model: 
+    print('load the model of ', f'./pth/ctsmamba.pth') 
+    model.load_state_dict(torch.load(f'./pth/ctsmamba.pth', map_location=lambda storage, loc: storage)) 
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+# optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5) 
+
+
 ### Step 2: Evaluate the model and save predictions to Excel files
 best_cutoff_value, auc_thres = test_model_v3(model, X_train_path, X_train, save_path=save_path_train) 
 test_model_v3(model, X_train_path_test, X_test, best_cutoff_value, save_path=save_path_test, auc_thres=auc_thres) 
@@ -578,8 +599,8 @@ df_preds_test = pd.read_excel(save_path_test)
 # df_preds_evc1 = pd.read_excel('./BDataset/pred_evc1.xlsx') 
 # df_preds_evc2 = pd.read_excel('./BDataset/pred_evc2.xlsx') 
 # Evaluate the model performance and calculate metrics
-metrics_DL_1, optimal_threshold_class_1, surv_1, best_value_surv_1 = evaluation_v2( df_preds_train )
-metrics_DL_2, optimal_threshold_class_2, surv_2, best_value_surv_2 = evaluation_v2( df_preds_test )
+metrics_DL_1, optimal_threshold_class_1, surv_1, best_value_surv_1 = evaluation_v2( df_preds_train, ifcal95CI=False )
+metrics_DL_2, optimal_threshold_class_2, surv_2, best_value_surv_2 = evaluation_v2( df_preds_test, ifcal95CI=False )
 # metrics_DL_3, optimal_threshold_class_3, _, _ = evaluation_v2( df_preds_evc1, ifsurv=False )
 # metrics_DL_4, optimal_threshold_class_4, surv_4, best_value_surv_4 = evaluation_v2( df_preds_evc2 )
 

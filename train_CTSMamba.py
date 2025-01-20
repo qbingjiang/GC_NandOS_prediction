@@ -4,7 +4,7 @@ import torch
 # import sys
 # sys.path.append(r"./mamba")
 # sys.path.append(r"./mamba/mamba_ssm")
-from model_segmamba.model_build import CTSMamba, CTSMamba_v2, TSMamba
+from model_build import CTSMamba, CTSMamba_v2, TSMamba
 import pandas as pd
 import numpy as np
 import torch.nn as nn
@@ -479,44 +479,10 @@ def test_model_v3(model, X_train_path, df_features, best_cutoff_value=None, ifca
         df_features.to_excel(save_path) 
     return best_cutoff_value, auc_thres
 
-def train_featsEncoding(model, trainloader, ifsavemodel=True, optimizer=None):  
-    for epoch in range(1, 3 ):  # loop over the dataset multiple times
-        model.train() 
-        ii=0
-        for i, data in enumerate(trainloader, 0): 
-            ####train the 1st time CT
-            optimizer.zero_grad()
-            x, y, labels = data
-            pred, feats = model((x[0]).type(Tensor)) 
-            loss_bce = criterion(torch.sigmoid(pred), y[0].type(Tensor)) 
-            loss_dice = criterion_dice(torch.sigmoid(pred), y[0].type(Tensor)) 
-            alpha=0.5
-            loss = alpha*loss_bce + (1-alpha)*loss_dice
-            loss.backward() 
-            optimizer.step() 
-            ii+=1
-            print(f'[epoch: {epoch} iteration: {ii}] pred loss: {loss.item():.3f}, {loss_bce.item():.3f}, {loss_dice.item():.3f}') 
 
-            ####train the 2nd time CT
-            optimizer.zero_grad()
-            pred, feats = model((x[1]).type(Tensor)) 
-            loss_bce = criterion(torch.sigmoid(pred), y[1].type(Tensor)) 
-            loss_dice = criterion_dice(torch.sigmoid(pred), y[1].type(Tensor)) 
-            alpha=0.5
-            loss = alpha*loss_bce + (1-alpha)*loss_dice
-            loss.backward() 
-            optimizer.step() 
-            ii+=1
-            print(f'[epoch: {epoch} iteration: {ii}] pred loss: {loss.item():.3f}, {loss_bce.item():.3f}, {loss_dice.item():.3f}') 
-        if ifsavemodel: 
-            if epoch%2==0: 
-                torch.save(model.state_dict(), f"./pth/segmamba-featsEncoding-{epoch}.pth") 
-            # torch.save(model.state_dict(), f"./pth/segmamba.pth") 
-        gc.collect() 
-
-def train_CTSMamba(model, trainloader, ifsavemodel=True, optimizer=None): 
+def train_CTSMamba(model, trainloader, ifsavemodel=True, optimizer=None, epoches=50): 
     # writer = SummaryWriter('experiment_1')
-    for epoch in range(1, 11 ):  # loop over the dataset multiple times
+    for epoch in range(1, epoches+1 ):  # loop over the dataset multiple times
         model.train()
         train_total_loss = []
         for i, data in enumerate(trainloader, 0): 
@@ -546,6 +512,7 @@ def train_CTSMamba(model, trainloader, ifsavemodel=True, optimizer=None):
         # test_model_v2(model, testloader01, X_test, best_cutoff_value)
         if epoch%5==0: 
             torch.save(model.state_dict(), f"./pth/ctsmamba-{epoch}.pth") 
+            torch.save(model.state_dict(), f"./pth/ctsmamba.pth") 
         gc.collect() 
 
 if __name__=="__main__": 
@@ -565,6 +532,8 @@ if __name__=="__main__":
                         help='Path to save the testing predictions Excel file.')
     parser.add_argument('--metrics_path', type=str, default='./BDataset/metrics_table.csv',
                         help='Path to save the evaluation metrics CSV file.')
+    parser.add_argument('--epoches', type=int, default=50,
+                        help='Epoches for training.')
     # Parse the arguments
     args = parser.parse_args()
 
@@ -576,6 +545,7 @@ if __name__=="__main__":
     save_path_train = args.save_path_train
     save_path_test = args.save_path_test
     metrics_path = args.metrics_path
+    epoches = args.epoches
 
     # Load the model
     
@@ -615,7 +585,7 @@ if __name__=="__main__":
     if cuda: model_CTSMamba = model_CTSMamba.cuda() 
     ifloadFeatsEncoder = True
     if ifloadFeatsEncoder: 
-        modelFeatsEncoder = r'./pth/segmamba-featsEncoding-2.pth'
+        modelFeatsEncoder = r'./pth/featsEncoding.pth'
         model_CTSMamba.featsEncoder.load_state_dict(torch.load(modelFeatsEncoder))
 
     ifloadmodelCTSMamba = False
@@ -625,7 +595,7 @@ if __name__=="__main__":
 
     optimizer = torch.optim.Adam(model_CTSMamba.parameters(), lr=1e-4)
     # optimizer = torch.optim.SGD(model_CTSMamba.parameters(), lr=0.0001, momentum=0.9, weight_decay=1e-5) 
-    train_CTSMamba(model_CTSMamba, trainloader, ifsavemodel=True, optimizer=optimizer)
+    train_CTSMamba(model_CTSMamba, trainloader, ifsavemodel=True, optimizer=optimizer, epoches=epoches)
     torch.save(model_CTSMamba.state_dict(), f"./pth/ctsmamba.pth") 
 
     ### Step 4: Evaluate the model and save predictions to Excel files 

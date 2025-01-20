@@ -1,0 +1,5 @@
+﻿,,AUC,Accuracy,Sensitivity,Specificity,F1 Score,precision,npv,optimal_threshold,cindex,pvalue,hr,best_cutoff_value
+DL,train,1.000,0.800,0.667,1.000,0.800,1.000,0.667,0.9674854874610901,,,,
+DL,interValid,1.000,0.800,0.667,1.000,0.800,1.000,0.667,0.9674854874610901,,,,
+DL,train_surv,,,,,,,,,0.600,0.8083651559145102,0.708(0.042-11.793),35.64355205744505
+DL,interValid_surv,,,,,,,,,0.600,0.8083651559145102,0.708(0.042-11.793),35.64355205744505

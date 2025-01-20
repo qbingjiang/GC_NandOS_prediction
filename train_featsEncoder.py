@@ -4,7 +4,7 @@ import torch
 # import sys
 # sys.path.append(r"./mamba")
 # sys.path.append(r"./mamba/mamba_ssm")
-from model_segmamba.model_build import CTSMamba, CTSMamba_v2, TSMamba
+from model_build import CTSMamba, CTSMamba_v2, TSMamba
 import pandas as pd
 import numpy as np
 import torch.nn as nn
@@ -237,7 +237,7 @@ def test_encodermodel(model, test_loader, device='cuda'):
     with torch.no_grad(): 
         for x, y, labels in test_loader: 
             x0, y0 = x[0].to(device), y[0].to(device) 
-            preds = model(x0)
+            preds, feats = model(x0)
             preds = torch.sigmoid(preds)  # 应用sigmoid激活函数
             loss_bce = criterion(preds, y0)
             loss_dice = criterion_dice(preds, y0) 
@@ -254,8 +254,8 @@ def test_encodermodel(model, test_loader, device='cuda'):
     avg_dice_score = total_dice_score / total_samples
     print(f'Test Results - Average BCE Loss: {avg_bce_loss:.3f}, Average Dice Score: {avg_dice_score:.3f}')
 
-def train_featsEncoding(model, trainloader, ifsavemodel=True, optimizer=None):  
-    for epoch in range(1, 3 ):  # loop over the dataset multiple times
+def train_featsEncoding(model, trainloader, ifsavemodel=True, optimizer=None, epoches=50):  
+    for epoch in range(1, epoches+1 ):  # loop over the dataset multiple times
         model.train() 
         ii=0
         for i, data in enumerate(trainloader, 0): 
@@ -284,9 +284,9 @@ def train_featsEncoding(model, trainloader, ifsavemodel=True, optimizer=None):
             ii+=1
             print(f'[epoch: {epoch} iteration: {ii}] pred loss: {loss.item():.3f}, {loss_bce.item():.3f}, {loss_dice.item():.3f}') 
         if ifsavemodel: 
-            if epoch%2==0: 
-                torch.save(model.state_dict(), f"./pth/segmamba-featsEncoding-{epoch}.pth") 
-            # torch.save(model.state_dict(), f"./pth/segmamba.pth") 
+            if epoch%5==0: 
+                torch.save(model.state_dict(), f"./pth/featsEncoding-{epoch}.pth") 
+                torch.save(model.state_dict(), f"./pth/featsEncoding.pth") 
         gc.collect() 
 
 def train_CTSMamba(model, trainloader, ifsavemodel=True, optimizer=None): 
@@ -327,11 +327,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Train and evaluate a model for lymph node metastasis prediction.')
     parser.add_argument('--training_set', type=str, default='./BDataset/Training_dataset_example.xlsx',
                         help='Path to the training dataset Excel file.')
-    parser.add_argument('--validation_set', type=str, default='./BDataset/Training_dataset_example.xlsx',
+    parser.add_argument('--validation_set', type=str, default='./BDataset/test_dataset_example.xlsx',
                         help='Path to the validation dataset Excel file.')
     parser.add_argument('--ifDealWithImbalance', action='store_false',
                         help='Whether to handle class imbalance.')
-    parser.add_argument('--batch_size', type=int, default=8,
+    parser.add_argument('--batch_size', type=int, default=2,
                         help='Batch size for training and testing.')
     parser.add_argument('--save_path_train', type=str, default='./BDataset/pred_train.xlsx',
                         help='Path to save the training predictions Excel file.')
@@ -339,6 +339,9 @@ if __name__=="__main__":
                         help='Path to save the testing predictions Excel file.')
     parser.add_argument('--metrics_path', type=str, default='./BDataset/metrics_table.csv',
                         help='Path to save the evaluation metrics CSV file.')
+    parser.add_argument('--epoches', type=int, default=50,
+                        help='Epoches for training.')
+    
     # Parse the arguments
     args = parser.parse_args()
 
@@ -350,7 +353,8 @@ if __name__=="__main__":
     save_path_train = args.save_path_train
     save_path_test = args.save_path_test
     metrics_path = args.metrics_path
-
+    epoches = args.epoches
+    
     # Load the model
     model_featsEncoding = TSMamba(in_chans=1, out_chans=1, depths=[2,2,2,2], feat_size=[48, 96, 192, 384]) 
     if cuda: model_featsEncoding = model_featsEncoding.cuda()
@@ -384,9 +388,9 @@ if __name__=="__main__":
     testloader01 = make_dataloader_v3(X_train_path_test, y_train_test, bs=1, ifshuffle=False ) 
 
     ### Step 2: Train the model for Features encoding 
-    iffeatsEncoding=False
+    iffeatsEncoding=True
     if iffeatsEncoding: 
         optimizer = torch.optim.Adam(model_featsEncoding.parameters(), lr=1e-4)
-        train_featsEncoding(model_featsEncoding, trainloader, ifsavemodel=True, optimizer=optimizer ) 
+        train_featsEncoding(model_featsEncoding, trainloader, ifsavemodel=True, optimizer=optimizer, epoches=epoches ) 
 
     test_encodermodel(model_featsEncoding, trainloader)
