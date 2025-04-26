@@ -21,6 +21,11 @@ Dependencies can be installed using:
 pip install -r requirements.txt
 ```
 
+### 3D Gastric cancer Segmentation in CT
+
+The paper about GC segmentation(ALIEN: Attention-Guided Cross-ResoLutIon CollaborativE Network for 3D Gastric Cancer Segmentation in CT Images) can be found in 
+https://www.sciencedirect.com/science/article/abs/pii/S1746809424005585. (Code: https://github.com/ZHChen-294/ALIEN) 
+
 ### Training
 
 A CTSMamba network with standard hyper-parameters for the task of LNM and OS prediction can be defined as follows:
